@@ -1,52 +1,32 @@
-CREATE TYPE "MediaCategory" AS ENUM ('FORM', 'EXAM', 'GUIDE');
-CREATE TYPE "MediaScanStatus" AS ENUM ('PENDING', 'CLEAN', 'REJECTED');
-CREATE TYPE "AuditAction" AS ENUM ('CREATE', 'UPDATE', 'SOFT_DELETE', 'UPLOAD');
+CREATE TYPE "ResultNotificationStatus" AS ENUM ('PENDING', 'PROCESSING', 'SENT', 'FAILED', 'SKIPPED');
 
-ALTER TABLE "AcademicYear" ADD COLUMN "deletedAt" TIMESTAMP(3);
-ALTER TABLE "ExamLevel" ADD COLUMN "deletedAt" TIMESTAMP(3);
-ALTER TABLE "Announcement" ADD COLUMN "bodyHtml" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "Organization" ADD COLUMN "notificationEmail" VARCHAR(320);
+ALTER TABLE "ResultPublicProjection" ADD COLUMN "organizationId" UUID;
+ALTER TABLE "ResultPublicProjection" ADD COLUMN "examCenterId" UUID;
 
-CREATE TABLE "MediaFile" (
+CREATE TABLE "ResultNotificationJob" (
   "id" UUID NOT NULL,
-  "bucket" VARCHAR(100) NOT NULL,
-  "objectKey" VARCHAR(512) NOT NULL,
-  "originalName" VARCHAR(255) NOT NULL,
-  "category" "MediaCategory" NOT NULL,
-  "mimeType" VARCHAR(100) NOT NULL,
-  "sizeBytes" INTEGER NOT NULL,
-  "sha256" VARCHAR(64) NOT NULL,
-  "scanStatus" "MediaScanStatus" NOT NULL DEFAULT 'PENDING',
-  "uploadedById" UUID NOT NULL,
-  "deletedAt" TIMESTAMP(3),
+  "resultPublicationId" UUID NOT NULL,
+  "organizationId" UUID NOT NULL,
+  "recipientEmail" VARCHAR(320),
+  "idempotencyKey" VARCHAR(255) NOT NULL,
+  "status" "ResultNotificationStatus" NOT NULL DEFAULT 'PENDING',
+  "attemptCount" INTEGER NOT NULL DEFAULT 0,
+  "nextAttemptAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "lastError" VARCHAR(1000),
+  "sentAt" TIMESTAMP(3),
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP(3) NOT NULL,
-
-  CONSTRAINT "MediaFile_pkey" PRIMARY KEY ("id")
+  CONSTRAINT "ResultNotificationJob_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "AuditLog" (
-  "id" UUID NOT NULL,
-  "actorId" UUID,
-  "action" "AuditAction" NOT NULL,
-  "entityType" VARCHAR(100) NOT NULL,
-  "entityId" VARCHAR(100) NOT NULL,
-  "beforeJson" JSONB,
-  "afterJson" JSONB,
-  "occurredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CREATE UNIQUE INDEX "ResultNotificationJob_idempotencyKey_key" ON "ResultNotificationJob"("idempotencyKey");
+CREATE INDEX "ResultNotificationJob_status_nextAttemptAt_idx" ON "ResultNotificationJob"("status", "nextAttemptAt");
+CREATE INDEX "ResultNotificationJob_resultPublicationId_organizationId_idx" ON "ResultNotificationJob"("resultPublicationId", "organizationId");
+CREATE INDEX "ResultPublicProjection_organizationId_academicYearId_isActive_idx" ON "ResultPublicProjection"("organizationId", "academicYearId", "isActive");
+CREATE INDEX "ResultPublicProjection_examCenterId_academicYearId_isActive_idx" ON "ResultPublicProjection"("examCenterId", "academicYearId", "isActive");
 
-  CONSTRAINT "AuditLog_pkey" PRIMARY KEY ("id")
-);
-
-CREATE UNIQUE INDEX "MediaFile_bucket_objectKey_key" ON "MediaFile"("bucket", "objectKey");
-CREATE INDEX "MediaFile_category_deletedAt_createdAt_idx" ON "MediaFile"("category", "deletedAt", "createdAt");
-CREATE INDEX "MediaFile_originalName_idx" ON "MediaFile"("originalName");
-CREATE INDEX "AuditLog_entityType_entityId_occurredAt_idx" ON "AuditLog"("entityType", "entityId", "occurredAt");
-CREATE INDEX "AuditLog_actorId_occurredAt_idx" ON "AuditLog"("actorId", "occurredAt");
-
-ALTER TABLE "MediaFile"
-  ADD CONSTRAINT "MediaFile_uploadedById_fkey"
-  FOREIGN KEY ("uploadedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
-ALTER TABLE "AuditLog"
-  ADD CONSTRAINT "AuditLog_actorId_fkey"
-  FOREIGN KEY ("actorId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "ResultPublicProjection" ADD CONSTRAINT "ResultPublicProjection_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "ResultPublicProjection" ADD CONSTRAINT "ResultPublicProjection_examCenterId_fkey" FOREIGN KEY ("examCenterId") REFERENCES "ExamCenter"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "ResultNotificationJob" ADD CONSTRAINT "ResultNotificationJob_resultPublicationId_fkey" FOREIGN KEY ("resultPublicationId") REFERENCES "ResultPublication"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "ResultNotificationJob" ADD CONSTRAINT "ResultNotificationJob_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
