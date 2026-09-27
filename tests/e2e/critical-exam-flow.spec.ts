@@ -79,8 +79,8 @@ test.describe.serial("critical examination lifecycle", () => {
     await guestPage
       .getByLabel("เลขที่นั่งสอบ หรือชื่อ–สกุล")
       .fill("E2E-CENTER-2569-NDT-TRI-E2E-00001");
-    await expect(guestPage.getByText("ทดสอบ อัตโนมัติ")).toBeVisible();
-    await expect(guestPage.getByText("ผ่าน")).toBeVisible();
+    await expect(guestPage.getByRole("cell", { name: "ทดสอบ อัตโนมัติ" })).toBeVisible();
+    await expect(guestPage.getByRole("cell", { name: "ผ่าน" })).toBeVisible();
     await guest.close();
   });
 });
