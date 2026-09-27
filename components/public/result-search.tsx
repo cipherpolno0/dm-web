@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import type { PublicResult } from "@/lib/public-data";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -29,7 +29,11 @@ function outcomeTone(outcome: string) {
 
 export function ResultSearch({ results }: ResultSearchProps) {
   const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLElement>(null);
   const deferredQuery = useDeferredValue(query);
+  useEffect(() => {
+    searchRef.current?.setAttribute("data-result-search-hydrated", "true");
+  }, []);
   const normalizedQuery = normalize(deferredQuery);
   const searchableResults = useMemo(
     () =>
@@ -55,7 +59,11 @@ export function ResultSearch({ results }: ResultSearchProps) {
   const visibleResults = filteredResults.slice(0, MAX_VISIBLE_RESULTS);
 
   return (
-    <section aria-labelledby="result-search-title">
+    <section
+      aria-labelledby="result-search-title"
+      data-result-search-hydrated="false"
+      ref={searchRef}
+    >
       <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-6">
         <h2 className="text-xl leading-[1.5] font-semibold" id="result-search-title">
           ค้นหาผลสอบ

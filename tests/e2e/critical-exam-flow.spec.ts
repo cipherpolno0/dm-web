@@ -75,6 +75,7 @@ test.describe.serial("critical examination lifecycle", () => {
     const guest = await browser.newContext();
     const guestPage = await guest.newPage();
     await guestPage.goto("/results");
+    await expect(guestPage.locator('[data-result-search-hydrated="true"]')).toBeVisible();
     await guestPage
       .getByLabel("เลขที่นั่งสอบ หรือชื่อ–สกุล")
       .fill("E2E-CENTER-2569-NDT-TRI-E2E-00001");
