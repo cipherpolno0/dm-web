@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --color-canvas: #f7f9f8;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #edf3f0;
+  --color-text: #17221f;
+  --color-text-muted: #4e5d56;
+  --color-border: #d6e0dc;
+  --color-primary: #0f4c3a;
+  --color-on-primary: #ffffff;
+  --color-secondary: #8a5a16;
+  --color-link: #0b5e55;
+  --color-focus: #1d4ed8;
+  --color-success: #166534;
+  --color-success-bg: #dcfce7;
+  --color-pending: #8a4b0f;
+  --color-pending-bg: #fef3c7;
+  --color-error: #b42318;
+  --color-error-bg: #fee4e2;
+  --color-info: #1d4ed8;
+  --color-info-bg: #dbeafe;
+  --shadow-sm: 0 1px 2px rgba(23, 34, 31, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --color-canvas: #121a18;
+    --color-surface: #1c2925;
+    --color-surface-subtle: #24332e;
+    --color-text: #f5f8f6;
+    --color-text-muted: #c4d0ca;
+    --color-border: #40514a;
+    --color-primary: #78c6ab;
+    --color-on-primary: #102019;
+    --color-secondary: #f2c66d;
+    --color-link: #8ddcc1;
+    --color-focus: #93c5fd;
+    --color-success: #86efac;
+    --color-success-bg: #173625;
+    --color-pending: #fcd34d;
+    --color-pending-bg: #3b2c12;
+    --color-error: #fda4af;
+    --color-error-bg: #3a1d20;
+    --color-info: #93c5fd;
+    --color-info-bg: #182b4a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--color-canvas);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--color-canvas);
+  color: var(--color-text);
+  font-family: "Noto Sans Thai", Sarabun, Tahoma, sans-serif;
+  font-size: 16px;
+  line-height: 1.75;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}
