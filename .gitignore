@@ -1,0 +1,28 @@
+# dependencies
+/node_modules
+
+# Next.js
+/.next
+/out
+
+# production
+/build
+/.vercel
+
+# local environment
+.env*
+!.env.example
+
+# tooling
+*.tsbuildinfo
+coverage/
+reports/
+playwright-report/
+test-results/
+.DS_Store
+.agents/
+.aws
+.codex/
+
+# Prisma
+/prisma/migrations/dev.db

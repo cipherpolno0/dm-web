@@ -30,6 +30,45 @@ pnpm build
 pnpm format
 ```
 
+## Automated tests
+
+Run the complete QA suite with:
+
+```bash
+pnpm test:all
+```
+
+`test:all` runs the unit suite with Node's coverage report, then runs the
+Playwright critical-flow test. Playwright always uses a separate, synthetic
+PostgreSQL database. It refuses to start unless `E2E_DATABASE_URL` is set and
+its database name contains `test`.
+
+```bash
+cp .env.e2e.example .env.e2e
+# Export E2E_DATABASE_URL from .env.e2e in your shell, then:
+pnpm test:e2e:install # one-time Chromium install
+pnpm test:all
+```
+
+The E2E runner applies committed Prisma migrations, resets and seeds the test
+database, then exercises: school application → field-officer approval/seat
+issue → admin publication → public result search. It uses only synthetic data
+and never falls back to `DATABASE_URL` or a production database.
+
+## Result notifications and reports
+
+Set `RESEND_API_KEY`, `RESULT_NOTIFICATION_FROM`, `INNGEST_EVENT_KEY`, and
+`INNGEST_SIGNING_KEY` in the deployed environment. Configure Inngest to serve
+`/api/inngest`; publishing results writes idempotent notification jobs in the
+same database transaction and queues delivery after the response. Failed email
+jobs retry on the 10-minute scheduled function with bounded exponential
+backoff (five attempts). A school must have `notificationEmail` configured in
+Master Data to receive a message.
+
+The protected dashboard is `/dashboard`. The passed-candidate report endpoint
+is `/api/reports/passed?format=xlsx` or `format=pdf`; server-side role scope
+is applied regardless of query parameters.
+
 `pnpm build` runs the production build; it does not need a database connection
 until code imports Prisma or uses `DATABASE_URL` at build time.
 

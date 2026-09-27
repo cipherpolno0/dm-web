@@ -1,11 +1,11 @@
 # Architecture Decision Record: ระบบบริหารการสอบนักธรรม–ธรรมศึกษา
 
-| รายการ | ค่าที่ตัดสินใจ |
-|---|---|
-| เอกสารอ้างอิง | `PRD.md` ฉบับ 26 ก.ย. 2569 |
-| เป้าหมายสถาปัตยกรรม | ระบบเดียวดูแลได้โดยผู้พัฒนาคนเดียว, deploy ซ้ำได้, รักษาข้อมูลส่วนบุคคล, และรองรับทราฟฟิกอ่านผลสอบที่พุ่งสูง |
-| แนวทางที่เลือก | Next.js บน Vercel + Supabase (Postgres/Auth/Storage) + Upstash Redis + Inngest + Resend + LINE Messaging API |
-| ข้อสำคัญ | **ห้ามใช้ LINE Notify**: บริการสิ้นสุดแล้วตั้งแต่ 31 มี.ค. 2568; หากต้องแจ้งผ่าน LINE ให้ใช้ LINE Official Account + Messaging API แทน |
+| รายการ              | ค่าที่ตัดสินใจ                                                                                                                         |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| เอกสารอ้างอิง       | `PRD.md` ฉบับ 26 ก.ย. 2569                                                                                                             |
+| เป้าหมายสถาปัตยกรรม | ระบบเดียวดูแลได้โดยผู้พัฒนาคนเดียว, deploy ซ้ำได้, รักษาข้อมูลส่วนบุคคล, และรองรับทราฟฟิกอ่านผลสอบที่พุ่งสูง                           |
+| แนวทางที่เลือก      | Next.js บน Vercel + Supabase (Postgres/Auth/Storage) + Upstash Redis + Inngest + Resend + LINE Messaging API                           |
+| ข้อสำคัญ            | **ห้ามใช้ LINE Notify**: บริการสิ้นสุดแล้วตั้งแต่ 31 มี.ค. 2568; หากต้องแจ้งผ่าน LINE ให้ใช้ LINE Official Account + Messaging API แทน |
 
 ## 1. หลักการออกแบบ
 
@@ -18,20 +18,20 @@
 
 ## 2. เปรียบเทียบทางเลือก
 
-| หัวข้อ | ทางเลือก A — **แนะนำ** | ทางเลือก B | ทางเลือก C |
-|---|---|---|---|
-| แนวคิด | Next.js + Vercel + Supabase + Redis/queue แบบ managed | Next.js บน Cloudflare + Workers/R2/D1/Queues | Laravel + Filament + PostgreSQL บน VPS/managed PaaS |
-| Frontend | Next.js App Router, TypeScript, React | Next.js ผ่าน OpenNext, TypeScript | Blade/Livewire หรือ Inertia, TypeScript เฉพาะส่วนจำเป็น |
-| Backend/API | Route Handlers + Server Actions ใน Next.js | Workers/Route Handlers ที่ขอบเครือข่าย | Laravel controllers/queues/API |
-| ฐานข้อมูล | Supabase PostgreSQL + RLS | Cloudflare D1 (SQLite) หรือเพิ่ม managed Postgres | PostgreSQL managed + Laravel Eloquent |
-| Auth | Supabase Auth (email/password + MFA สำหรับ admin) | Clerk/Auth.js หรือ Supabase Auth แยกต่างหาก | Laravel Fortify/Jetstream |
-| ที่เก็บไฟล์ | Supabase Storage (private/public buckets) | Cloudflare R2 | S3-compatible storage |
-| งานเบื้องหลัง | Inngest (import, สร้าง read model, แจ้งเตือน) | Cloudflare Queues/Workers | Laravel Queue + Redis/Horizon |
-| รับโหลดผลสอบ | Vercel CDN/WAF + Redis read model + rate limit | CDN/Workers ใกล้ผู้ใช้ + KV/D1 cache | ต้องออกแบบ cache/Redis/CDN และ scale app เองมากกว่า |
-| ดูแลคนเดียว | ต่ำถึงปานกลาง: console หลายตัวแต่ไม่มี OS | ปานกลาง: runtime/compatibility ของ Next.js บน Workers เพิ่มจุดเรียนรู้ | ปานกลางถึงสูง: patch, queue worker, scale/backup หากใช้ VPS |
-| ความแม่นของ AI coding agent | สูงมาก: Next.js/Supabase/TypeScript มีตัวอย่างและเอกสารกว้าง | ปานกลาง: bindings/runtime ต่างจาก Node ปกติ | สูงสำหรับ Laravel แต่เปลี่ยนภาษา/แนวทางจากแผน Codex ที่เป็น TypeScript |
-| ความเสี่ยงหลัก | vendor หลายรายและค่าใช้จ่ายตามการใช้ | D1 ไม่เหมาะเป็นฐานหลักของ workflow เชิงสัมพันธ์และ audit ที่ซับซ้อน; compatibility | operational load และ burst result traffic ไปลงที่ระบบที่ดูแลเอง |
-| เหมาะเมื่อ | ต้องการส่งมอบเร็ว, ทีม 1 คน, เน้น workflow และความถูกต้องของข้อมูล | ทีมเชี่ยวชาญ Cloudflare และเน้น edge-first เป็นหลัก | มีผู้ดูแล PHP/infra หรือองค์กรกำหนดให้ host เอง |
+| หัวข้อ                      | ทางเลือก A — **แนะนำ**                                             | ทางเลือก B                                                                         | ทางเลือก C                                                             |
+| --------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| แนวคิด                      | Next.js + Vercel + Supabase + Redis/queue แบบ managed              | Next.js บน Cloudflare + Workers/R2/D1/Queues                                       | Laravel + Filament + PostgreSQL บน VPS/managed PaaS                    |
+| Frontend                    | Next.js App Router, TypeScript, React                              | Next.js ผ่าน OpenNext, TypeScript                                                  | Blade/Livewire หรือ Inertia, TypeScript เฉพาะส่วนจำเป็น                |
+| Backend/API                 | Route Handlers + Server Actions ใน Next.js                         | Workers/Route Handlers ที่ขอบเครือข่าย                                             | Laravel controllers/queues/API                                         |
+| ฐานข้อมูล                   | Supabase PostgreSQL + RLS                                          | Cloudflare D1 (SQLite) หรือเพิ่ม managed Postgres                                  | PostgreSQL managed + Laravel Eloquent                                  |
+| Auth                        | Supabase Auth (email/password + MFA สำหรับ admin)                  | Clerk/Auth.js หรือ Supabase Auth แยกต่างหาก                                        | Laravel Fortify/Jetstream                                              |
+| ที่เก็บไฟล์                 | Supabase Storage (private/public buckets)                          | Cloudflare R2                                                                      | S3-compatible storage                                                  |
+| งานเบื้องหลัง               | Inngest (import, สร้าง read model, แจ้งเตือน)                      | Cloudflare Queues/Workers                                                          | Laravel Queue + Redis/Horizon                                          |
+| รับโหลดผลสอบ                | Vercel CDN/WAF + Redis read model + rate limit                     | CDN/Workers ใกล้ผู้ใช้ + KV/D1 cache                                               | ต้องออกแบบ cache/Redis/CDN และ scale app เองมากกว่า                    |
+| ดูแลคนเดียว                 | ต่ำถึงปานกลาง: console หลายตัวแต่ไม่มี OS                          | ปานกลาง: runtime/compatibility ของ Next.js บน Workers เพิ่มจุดเรียนรู้             | ปานกลางถึงสูง: patch, queue worker, scale/backup หากใช้ VPS            |
+| ความแม่นของ AI coding agent | สูงมาก: Next.js/Supabase/TypeScript มีตัวอย่างและเอกสารกว้าง       | ปานกลาง: bindings/runtime ต่างจาก Node ปกติ                                        | สูงสำหรับ Laravel แต่เปลี่ยนภาษา/แนวทางจากแผน Codex ที่เป็น TypeScript |
+| ความเสี่ยงหลัก              | vendor หลายรายและค่าใช้จ่ายตามการใช้                               | D1 ไม่เหมาะเป็นฐานหลักของ workflow เชิงสัมพันธ์และ audit ที่ซับซ้อน; compatibility | operational load และ burst result traffic ไปลงที่ระบบที่ดูแลเอง        |
+| เหมาะเมื่อ                  | ต้องการส่งมอบเร็ว, ทีม 1 คน, เน้น workflow และความถูกต้องของข้อมูล | ทีมเชี่ยวชาญ Cloudflare และเน้น edge-first เป็นหลัก                                | มีผู้ดูแล PHP/infra หรือองค์กรกำหนดให้ host เอง                        |
 
 ### เหตุผลที่เลือกทางเลือก A
 
@@ -39,22 +39,22 @@ PRD ต้องการ PostgreSQL เชิงสัมพันธ์, revis
 
 ## 3. Stack ที่เลือก
 
-| ชั้น | เทคโนโลยี | เหตุผลและกติกาใช้งาน |
-|---|---|---|
-| ภาษา/เครื่องมือ | TypeScript, Node.js LTS, pnpm, ESLint, Prettier, Vitest, Playwright | โค้ดชนิดเดียวทั้ง frontend/backend; เครื่องมือมีเอกสารและตัวอย่างมาก; lockfile ต้อง commit |
-| Frontend | Next.js App Router, React, Tailwind CSS, shadcn/ui | SSR/SEO สำหรับสาธารณะ, server components สำหรับอ่านข้อมูล, UI หลังบ้านสม่ำเสมอ; ไม่ต้องสร้าง API แยกสำหรับทุกฟอร์ม |
-| Backend/API | Next.js Route Handlers สำหรับ API และ Server Actions สำหรับ mutation ที่ผูกกับ form | ใช้ schema validation ด้วย Zod ทุก input; ทุก mutation เรียก `authorize(actor, action, resource, scope)` ก่อน transaction |
-| Database | Supabase PostgreSQL, SQL migrations, Postgres RLS, `@supabase/ssr`/`supabase-js` | ได้ Postgres จริง, Auth/Storage อยู่ใกล้กัน, connection pooling; migration เป็นไฟล์ใน Git และไม่แก้ schema ผ่าน dashboard แบบไม่มี migration |
-| Data access | SQL/RPC ที่ versioned สำหรับ transaction สำคัญ; query layer บน server เท่านั้นสำหรับข้อมูล private | ใช้ SQL function แบบ `security invoker` ที่จำเป็นสำหรับ approve/publish/import; service-role key อยู่เฉพาะ server/worker, ห้ามส่งไป browser |
-| Auth | Supabase Auth: email/password สำหรับบัญชีที่ผ่านอนุมัติ, MFA บังคับสำหรับ Central Admin | คำขอบัญชีเป็นตาราง application แยกจาก `auth.users`; role/scope เก็บใน app schema ไม่ใส่สิทธิ์ละเอียดใน UI token อย่างเดียว |
-| File storage | Supabase Storage: `public-documents`, `private-submissions`, `private-evidence`, `exports` | upload ผ่าน signed URL เฉพาะที่ authorize แล้ว; validate type/size, สแกนมัลแวร์ก่อนเผยแพร่; เก็บ metadata/owner/version ใน DB |
-| Excel/PDF | SheetJS (`xlsx`) สำหรับ parse/generate Excel; pdf-lib/Playwright print สำหรับ PDF รายงาน | การนำเข้าเป็น async job; ทำ validation แบบ dry-run ก่อน commit; ไม่ parse ไฟล์จาก client แล้วเชื่อข้อมูล client |
-| Cache/read model | Upstash Redis: ผลสอบ published ที่ผ่านการทำ public projection, exact-name lookup cache, rate limit | key เช่น `result:v1:{year}:{normalized-full-name}`; TTL ไม่ใช้แทนการถอนประกาศ — ต้อง delete/invalidate key จาก publish workflow |
-| งานเบื้องหลัง | Inngest | งาน import Excel, สร้าง/ลบ result projection, export รายงาน, สแกนไฟล์, และแจ้งเตือนเป็น job ที่ retry/idempotent; ไม่ผูกงานนานกับ request ของผู้ใช้ |
-| E-mail | Resend | ส่ง reset/invite และ notification เฉพาะเมื่ออนุมัติการใช้; event log ต้องไม่บันทึก token หรือเนื้อหาละเอียดเกินจำเป็น |
-| LINE | LINE Official Account + Messaging API (ทางเลือก) | ไม่ใช้ LINE Notify; ส่งได้เฉพาะผู้ที่ opt-in/ผูกบัญชีตามนโยบายและ quota; เก็บ LINE user ID เป็น Restricted data |
-| Deploy/edge | Vercel: production, preview, CDN, WAF/Firewall, environment separation | หน้า public/cacheable ใช้ CDN; endpoint ค้นหาผลเป็น dynamic server endpoint ที่ rate limit; ห้ามต่อ Postgres ตรงจาก browser |
-| Observability | Vercel logs/analytics + Sentry | error มี request ID; redact password/token/Excel contents/PII จาก log; alert เฉพาะ error rate, queue failures, publish failure, DB saturation |
+| ชั้น             | เทคโนโลยี                                                                                          | เหตุผลและกติกาใช้งาน                                                                                                                                |
+| ---------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ภาษา/เครื่องมือ  | TypeScript, Node.js LTS, pnpm, ESLint, Prettier, Vitest, Playwright                                | โค้ดชนิดเดียวทั้ง frontend/backend; เครื่องมือมีเอกสารและตัวอย่างมาก; lockfile ต้อง commit                                                          |
+| Frontend         | Next.js App Router, React, Tailwind CSS, shadcn/ui                                                 | SSR/SEO สำหรับสาธารณะ, server components สำหรับอ่านข้อมูล, UI หลังบ้านสม่ำเสมอ; ไม่ต้องสร้าง API แยกสำหรับทุกฟอร์ม                                  |
+| Backend/API      | Next.js Route Handlers สำหรับ API และ Server Actions สำหรับ mutation ที่ผูกกับ form                | ใช้ schema validation ด้วย Zod ทุก input; ทุก mutation เรียก `authorize(actor, action, resource, scope)` ก่อน transaction                           |
+| Database         | Supabase PostgreSQL, SQL migrations, Postgres RLS, `@supabase/ssr`/`supabase-js`                   | ได้ Postgres จริง, Auth/Storage อยู่ใกล้กัน, connection pooling; migration เป็นไฟล์ใน Git และไม่แก้ schema ผ่าน dashboard แบบไม่มี migration        |
+| Data access      | SQL/RPC ที่ versioned สำหรับ transaction สำคัญ; query layer บน server เท่านั้นสำหรับข้อมูล private | ใช้ SQL function แบบ `security invoker` ที่จำเป็นสำหรับ approve/publish/import; service-role key อยู่เฉพาะ server/worker, ห้ามส่งไป browser         |
+| Auth             | Supabase Auth: email/password สำหรับบัญชีที่ผ่านอนุมัติ, MFA บังคับสำหรับ Central Admin            | คำขอบัญชีเป็นตาราง application แยกจาก `auth.users`; role/scope เก็บใน app schema ไม่ใส่สิทธิ์ละเอียดใน UI token อย่างเดียว                          |
+| File storage     | Supabase Storage: `public-documents`, `private-submissions`, `private-evidence`, `exports`         | upload ผ่าน signed URL เฉพาะที่ authorize แล้ว; validate type/size, สแกนมัลแวร์ก่อนเผยแพร่; เก็บ metadata/owner/version ใน DB                       |
+| Excel/PDF        | SheetJS (`xlsx`) สำหรับ parse/generate Excel; pdf-lib/Playwright print สำหรับ PDF รายงาน           | การนำเข้าเป็น async job; ทำ validation แบบ dry-run ก่อน commit; ไม่ parse ไฟล์จาก client แล้วเชื่อข้อมูล client                                     |
+| Cache/read model | Upstash Redis: ผลสอบ published ที่ผ่านการทำ public projection, exact-name lookup cache, rate limit | key เช่น `result:v1:{year}:{normalized-full-name}`; TTL ไม่ใช้แทนการถอนประกาศ — ต้อง delete/invalidate key จาก publish workflow                     |
+| งานเบื้องหลัง    | Inngest                                                                                            | งาน import Excel, สร้าง/ลบ result projection, export รายงาน, สแกนไฟล์, และแจ้งเตือนเป็น job ที่ retry/idempotent; ไม่ผูกงานนานกับ request ของผู้ใช้ |
+| E-mail           | Resend                                                                                             | ส่ง reset/invite และ notification เฉพาะเมื่ออนุมัติการใช้; event log ต้องไม่บันทึก token หรือเนื้อหาละเอียดเกินจำเป็น                               |
+| LINE             | LINE Official Account + Messaging API (ทางเลือก)                                                   | ไม่ใช้ LINE Notify; ส่งได้เฉพาะผู้ที่ opt-in/ผูกบัญชีตามนโยบายและ quota; เก็บ LINE user ID เป็น Restricted data                                     |
+| Deploy/edge      | Vercel: production, preview, CDN, WAF/Firewall, environment separation                             | หน้า public/cacheable ใช้ CDN; endpoint ค้นหาผลเป็น dynamic server endpoint ที่ rate limit; ห้ามต่อ Postgres ตรงจาก browser                         |
+| Observability    | Vercel logs/analytics + Sentry                                                                     | error มี request ID; redact password/token/Excel contents/PII จาก log; alert เฉพาะ error rate, queue failures, publish failure, DB saturation       |
 
 ### ขอบเขตสเกลที่ตั้งใจรองรับ
 
@@ -95,25 +95,25 @@ flowchart TB
 
 ### การไหลของข้อมูลสำคัญ
 
-| เหตุการณ์ | การไหล | ข้อควบคุม |
-|---|---|---|
-| สำนักเรียนอัปโหลด Excel | Browser → signed upload (private) → Inngest dry-run → error report หรือ DB transaction | ตรวจ MIME/ขนาด/template version/รายแถว; ผู้ส่งเห็นเฉพาะ batch ของหน่วยงานตน |
-| ส่วนกลางอนุมัติรายชื่อ | Admin → server authorization → SQL transaction → audit log | ตรวจ role และ scope; ผู้อนุมัติ/เวลา/หมายเหตุบันทึกถาวร |
-| เจ้าหน้าที่สนามสอบ check-in | Admin UI → authorization สนามของตน → DB | ใช้ข้อมูลเฉพาะผู้สมัครที่อยู่ในสนาม/ห้องนั้น; event append-only |
-| ส่วนกลาง publish ผล | maker/checker → approve transaction → enqueue projection job → Redis → publish complete | public API อ่านเฉพาะผลที่ projection สำเร็จ; job idempotent; ถ้าไม่ครบให้สถานะ `publish_failed` และไม่เปิดผล |
-| ประชาชนค้นผล | Browser → CDN/WAF → Result API → Redis → minimal response | บังคับปี + ชื่อเต็ม, rate limit, risk challenge, no raw DB/PII |
-| ถอนประกาศ | Admin → authorize → DB status + audit → invalidate Redis keys | เริ่ม invalidate ก่อนเปิด response สำเร็จ; cached HTML/API ต้อง no-store หรือ purge ตาม tag |
+| เหตุการณ์                   | การไหล                                                                                  | ข้อควบคุม                                                                                                    |
+| --------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| สำนักเรียนอัปโหลด Excel     | Browser → signed upload (private) → Inngest dry-run → error report หรือ DB transaction  | ตรวจ MIME/ขนาด/template version/รายแถว; ผู้ส่งเห็นเฉพาะ batch ของหน่วยงานตน                                  |
+| ส่วนกลางอนุมัติรายชื่อ      | Admin → server authorization → SQL transaction → audit log                              | ตรวจ role และ scope; ผู้อนุมัติ/เวลา/หมายเหตุบันทึกถาวร                                                      |
+| เจ้าหน้าที่สนามสอบ check-in | Admin UI → authorization สนามของตน → DB                                                 | ใช้ข้อมูลเฉพาะผู้สมัครที่อยู่ในสนาม/ห้องนั้น; event append-only                                              |
+| ส่วนกลาง publish ผล         | maker/checker → approve transaction → enqueue projection job → Redis → publish complete | public API อ่านเฉพาะผลที่ projection สำเร็จ; job idempotent; ถ้าไม่ครบให้สถานะ `publish_failed` และไม่เปิดผล |
+| ประชาชนค้นผล                | Browser → CDN/WAF → Result API → Redis → minimal response                               | บังคับปี + ชื่อเต็ม, rate limit, risk challenge, no raw DB/PII                                               |
+| ถอนประกาศ                   | Admin → authorize → DB status + audit → invalidate Redis keys                           | เริ่ม invalidate ก่อนเปิด response สำเร็จ; cached HTML/API ต้อง no-store หรือ purge ตาม tag                  |
 
 ## 5. ข้อมูลและสิทธิ์ (implementation guardrails)
 
 ### ตาราง/ขอบเขตหลัก
 
-| กลุ่มข้อมูล | ตัวอย่าง | ชั้นป้องกัน |
-|---|---|---|
-| Public content | ข่าว ปฏิทิน เอกสารที่เผยแพร่แล้ว | `published_at` + CDN; bucket public เฉพาะไฟล์ที่ approved |
-| Restricted | applicant, contact, เอกสารนำเข้า, incident, คะแนนดิบ | Server authorization + RLS; private bucket; redact log |
-| Highly restricted | เอกสารยืนยันตัวตน, LINE user ID, credential/reset token | ไม่ลง Redis/CDN/log; access เฉพาะ need-to-know; retention มติเป็นลายลักษณ์อักษร |
-| Public result projection | `year`, normalized name key, display name, exam type/level, status, approved public org field | สร้างจาก allowlist เท่านั้น; ห้าม copy row จาก applicant/result โดยตรง |
+| กลุ่มข้อมูล              | ตัวอย่าง                                                                                      | ชั้นป้องกัน                                                                     |
+| ------------------------ | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Public content           | ข่าว ปฏิทิน เอกสารที่เผยแพร่แล้ว                                                              | `published_at` + CDN; bucket public เฉพาะไฟล์ที่ approved                       |
+| Restricted               | applicant, contact, เอกสารนำเข้า, incident, คะแนนดิบ                                          | Server authorization + RLS; private bucket; redact log                          |
+| Highly restricted        | เอกสารยืนยันตัวตน, LINE user ID, credential/reset token                                       | ไม่ลง Redis/CDN/log; access เฉพาะ need-to-know; retention มติเป็นลายลักษณ์อักษร |
+| Public result projection | `year`, normalized name key, display name, exam type/level, status, approved public org field | สร้างจาก allowlist เท่านั้น; ห้าม copy row จาก applicant/result โดยตรง          |
 
 ### รูปแบบ scope ที่บังคับใช้
 
@@ -181,16 +181,16 @@ dhammastudy-exam/
 
 ## 7. Environments และ CI/CD
 
-| เรื่อง | Development | Staging | Production |
-|---|---|---|---|
-| Git/Deploy | feature branch → Vercel Preview | `staging` branch → staging URL | `main` protected branch → production URL |
-| App environment | `.env.local` ไม่ commit | Vercel Staging env | Vercel Production env |
-| Supabase | local Supabase CLI หรือ dev project | แยก Supabase project | แยก Supabase project; backup/PITR ตามแผนที่อนุมัติ |
-| Redis/Inngest | local dev/stub | แยก namespace/project | แยก namespace/project |
-| Storage | bucket/local emulator ที่มีข้อมูลสมมติ | bucket แยก | bucket แยก, lifecycle/retention เปิดใช้ |
-| Auth users | synthetic | synthetic/ทดสอบ | บัญชีจริงที่อนุมัติเท่านั้น |
-| Notifications | mail sandbox / no-send | allowlist ผู้ทดสอบ | Resend domain ที่ยืนยันแล้ว; LINE OA เฉพาะ opt-in |
-| ข้อมูลผลสอบ | fixture | synthetic | ข้อมูลจริงหลัง approval เท่านั้น |
+| เรื่อง          | Development                            | Staging                        | Production                                         |
+| --------------- | -------------------------------------- | ------------------------------ | -------------------------------------------------- |
+| Git/Deploy      | feature branch → Vercel Preview        | `staging` branch → staging URL | `main` protected branch → production URL           |
+| App environment | `.env.local` ไม่ commit                | Vercel Staging env             | Vercel Production env                              |
+| Supabase        | local Supabase CLI หรือ dev project    | แยก Supabase project           | แยก Supabase project; backup/PITR ตามแผนที่อนุมัติ |
+| Redis/Inngest   | local dev/stub                         | แยก namespace/project          | แยก namespace/project                              |
+| Storage         | bucket/local emulator ที่มีข้อมูลสมมติ | bucket แยก                     | bucket แยก, lifecycle/retention เปิดใช้            |
+| Auth users      | synthetic                              | synthetic/ทดสอบ                | บัญชีจริงที่อนุมัติเท่านั้น                        |
+| Notifications   | mail sandbox / no-send                 | allowlist ผู้ทดสอบ             | Resend domain ที่ยืนยันแล้ว; LINE OA เฉพาะ opt-in  |
+| ข้อมูลผลสอบ     | fixture                                | synthetic                      | ข้อมูลจริงหลัง approval เท่านั้น                   |
 
 ### Secrets และตัวแปรสภาพแวดล้อม
 
@@ -220,30 +220,30 @@ dhammastudy-exam/
 
 ### SLO ที่ควรตั้งก่อน go-live
 
-| ตัวชี้วัด | เป้าหมายเริ่มต้น | วิธีวัด |
-|---|---|---|
-| Public pages | p95 < 1.5 วินาทีจาก CDN | Vercel analytics/synthetic check |
-| Result API (cache hit) | p95 < 500 ms | endpoint metrics |
-| Result API error rate | < 1% ใน 15 นาที (ไม่นับ 429 challenge/rate limit) | Sentry + platform logs |
-| Projection completeness | 100% ของจำนวน record ที่อนุมัติ | job checksum/count gate ก่อน publish |
-| Admin mutation | audit coverage 100% | integration test + audit reconciliation |
-| Restore | ทดสอบกู้คืนตามรอบที่ประกาศ | backup restore drill record |
+| ตัวชี้วัด               | เป้าหมายเริ่มต้น                                  | วิธีวัด                                 |
+| ----------------------- | ------------------------------------------------- | --------------------------------------- |
+| Public pages            | p95 < 1.5 วินาทีจาก CDN                           | Vercel analytics/synthetic check        |
+| Result API (cache hit)  | p95 < 500 ms                                      | endpoint metrics                        |
+| Result API error rate   | < 1% ใน 15 นาที (ไม่นับ 429 challenge/rate limit) | Sentry + platform logs                  |
+| Projection completeness | 100% ของจำนวน record ที่อนุมัติ                   | job checksum/count gate ก่อน publish    |
+| Admin mutation          | audit coverage 100%                               | integration test + audit reconciliation |
+| Restore                 | ทดสอบกู้คืนตามรอบที่ประกาศ                        | backup restore drill record             |
 
 ## 9. ตรวจความครบถ้วนกับ Must-have ใน PRD
 
-| Must-have ใน PRD | องค์ประกอบสถาปัตยกรรมที่รองรับ | สถานะ |
-|---|---|---|
-| ปีการศึกษา/รอบ/ระดับ/ปฏิทิน | PostgreSQL migrations + Next admin modules | ครบ |
-| login, คำขอบัญชี, RBAC และ scope | Supabase Auth + app roles/scopes + server authorization + RLS | ครบ |
-| ทะเบียนหน่วยงาน/วัด/สนาม/ห้อง | relational Postgres schema + scoped admin routes | ครบ |
-| ข่าว เอกสาร คู่มือ FAQ | Next public pages + CMS tables + Supabase Storage buckets | ครบ |
-| จำนวนคาดการณ์ | PostgreSQL transactional tables + admin report | ครบ |
-| Excel template/import/error/revision | private storage + Inngest + Excel package + revision/audit schema | ครบ |
-| ส่ง–ตรวจ–อนุมัติ–ส่งกลับ | domain state machine + SQL transaction + audit | ครบ |
-| จัดห้อง/เลขที่นั่ง/check-in | scoped server actions + Postgres + mobile-responsive admin | ครบ |
-| import/ตรวจ/อนุมัติ/publish ผล | maker-checker use case + async projection job + audit | ครบ |
+| Must-have ใน PRD                     | องค์ประกอบสถาปัตยกรรมที่รองรับ                                        | สถานะ                                         |
+| ------------------------------------ | --------------------------------------------------------------------- | --------------------------------------------- |
+| ปีการศึกษา/รอบ/ระดับ/ปฏิทิน          | PostgreSQL migrations + Next admin modules                            | ครบ                                           |
+| login, คำขอบัญชี, RBAC และ scope     | Supabase Auth + app roles/scopes + server authorization + RLS         | ครบ                                           |
+| ทะเบียนหน่วยงาน/วัด/สนาม/ห้อง        | relational Postgres schema + scoped admin routes                      | ครบ                                           |
+| ข่าว เอกสาร คู่มือ FAQ               | Next public pages + CMS tables + Supabase Storage buckets             | ครบ                                           |
+| จำนวนคาดการณ์                        | PostgreSQL transactional tables + admin report                        | ครบ                                           |
+| Excel template/import/error/revision | private storage + Inngest + Excel package + revision/audit schema     | ครบ                                           |
+| ส่ง–ตรวจ–อนุมัติ–ส่งกลับ             | domain state machine + SQL transaction + audit                        | ครบ                                           |
+| จัดห้อง/เลขที่นั่ง/check-in          | scoped server actions + Postgres + mobile-responsive admin            | ครบ                                           |
+| import/ตรวจ/อนุมัติ/publish ผล       | maker-checker use case + async projection job + audit                 | ครบ                                           |
 | ค้นหาผลชื่อ–นามสกุล + ปี และ privacy | public allowlist projection ใน Redis + CDN/WAF + rate limit/challenge | ครบ โดยควรยืนยันรูปแบบชื่อที่อนุญาตก่อน build |
-| รายงาน/audit/backup/retention | SQL export jobs + append-only audit + managed backup/PITR + runbook | ครบ โดย retention ต้องได้รับอนุมัติทางนโยบาย |
+| รายงาน/audit/backup/retention        | SQL export jobs + append-only audit + managed backup/PITR + runbook   | ครบ โดย retention ต้องได้รับอนุมัติทางนโยบาย  |
 
 ### ช่องว่างที่ต้องปิดก่อนเริ่ม implementation
 

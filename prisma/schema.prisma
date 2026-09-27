@@ -1,0 +1,522 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AnnouncementStatus {
+  DRAFT
+  PUBLISHED
+  UNPUBLISHED
+}
+
+enum ResultPublicationStatus {
+  PREPARING
+  PUBLISHED
+  UNPUBLISHED
+  FAILED
+}
+
+enum UserRole {
+  super_admin
+  field_officer
+  school
+  guest
+}
+
+enum AuthAuditEvent {
+  LOGIN_SUCCESS
+  LOGIN_FAILURE
+}
+
+enum MediaCategory {
+  FORM
+  EXAM
+  GUIDE
+}
+
+enum MediaScanStatus {
+  PENDING
+  CLEAN
+  REJECTED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  SOFT_DELETE
+  UPLOAD
+  IMPORT
+  APPROVE
+  PUBLISH
+}
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED_TO_CENTER
+  CENTER_RETURNED
+  CENTER_APPROVED
+}
+
+enum ApplicationSource {
+  MANUAL
+  EXCEL_IMPORT
+}
+
+enum ImportBatchStatus {
+  VALIDATING
+  REJECTED
+  READY
+  COMMITTED
+}
+
+enum ResultNotificationStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model AcademicYear {
+  id             String                  @id @default(uuid()) @db.Uuid
+  yearBe         Int                     @unique
+  label          String
+  examPrograms   ExamProgram[]
+  calendarEvents CalendarEvent[]
+  resultRecords  ResultPublicProjection[]
+  deletedAt      DateTime?
+}
+
+model ExamType {
+  id           String        @id @default(uuid()) @db.Uuid
+  code         String        @unique
+  nameTh       String
+  examPrograms ExamProgram[]
+}
+
+model ExamLevel {
+  id           String        @id @default(uuid()) @db.Uuid
+  code         String        @unique
+  nameTh       String
+  examPrograms ExamProgram[]
+  deletedAt    DateTime?
+}
+
+model ExamProgram {
+  id              String          @id @default(uuid()) @db.Uuid
+  academicYearId  String          @db.Uuid
+  examTypeId      String          @db.Uuid
+  examLevelId     String          @db.Uuid
+  code            String          @unique
+  examDate        DateTime?
+  resultPublishAt DateTime?
+  academicYear    AcademicYear    @relation(fields: [academicYearId], references: [id])
+  examType        ExamType        @relation(fields: [examTypeId], references: [id])
+  examLevel       ExamLevel       @relation(fields: [examLevelId], references: [id])
+  calendarEvents  CalendarEvent[]
+  publications    ResultPublication[]
+  applications    ExamApplication[]
+  seatSequences   SeatSequence[]
+  seatAssignments SeatAssignment[]
+  scoreImports    ScoreImportBatch[]
+
+  @@unique([academicYearId, examTypeId, examLevelId])
+  @@index([academicYearId, examDate])
+}
+
+model Announcement {
+  id            String             @id @default(uuid()) @db.Uuid
+  title         String
+  slug          String             @unique
+  summary       String?
+  bodyMarkdown  String
+  bodyHtml      String             @default("")
+  category      String
+  status        AnnouncementStatus @default(DRAFT)
+  publishedAt   DateTime?
+  unpublishedAt DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model CalendarEvent {
+  id             String        @id @default(uuid()) @db.Uuid
+  academicYearId String        @db.Uuid
+  examProgramId  String?       @db.Uuid
+  title          String
+  eventType      String
+  startsAt       DateTime
+  endsAt         DateTime?
+  isPublic       Boolean       @default(false)
+  publishedAt    DateTime?
+  deletedAt      DateTime?
+  academicYear   AcademicYear  @relation(fields: [academicYearId], references: [id])
+  examProgram    ExamProgram?  @relation(fields: [examProgramId], references: [id])
+
+  @@index([isPublic, startsAt])
+}
+
+model Organization {
+  id        String    @id @default(uuid()) @db.Uuid
+  code      String    @unique
+  nameTh    String
+  notificationEmail String? @db.VarChar(320)
+  deletedAt DateTime?
+  users     User[]
+  applications ExamApplication[]
+  applicationImportBatches ApplicationImportBatch[]
+  publicResultProjections ResultPublicProjection[]
+  resultNotificationJobs ResultNotificationJob[]
+
+  @@index([deletedAt, nameTh])
+}
+
+model ExamCenter {
+  id        String    @id @default(uuid()) @db.Uuid
+  code      String    @unique
+  nameTh    String
+  deletedAt DateTime?
+  users     User[]
+  applications ExamApplication[]
+  seatAssignments SeatAssignment[]
+  seatSequences SeatSequence[]
+  publicResultProjections ResultPublicProjection[]
+
+  @@index([deletedAt, nameTh])
+}
+
+model ResultPublication {
+  id            String                  @id @default(uuid()) @db.Uuid
+  examProgramId String                  @db.Uuid
+  publicationNo Int
+  status        ResultPublicationStatus @default(PREPARING)
+  isPublished   Boolean                 @default(false) @map("is_published")
+  publishedAt   DateTime?
+  deletedAt     DateTime?
+  examProgram   ExamProgram             @relation(fields: [examProgramId], references: [id])
+  projections   ResultPublicProjection[]
+  notificationJobs ResultNotificationJob[]
+
+  @@unique([examProgramId, publicationNo])
+  @@index([status, isPublished, publishedAt])
+}
+
+model ResultPublicProjection {
+  id                     String            @id @default(uuid()) @db.Uuid
+  resultPublicationId    String            @db.Uuid
+  academicYearId         String            @db.Uuid
+  organizationId         String?           @db.Uuid
+  examCenterId           String?           @db.Uuid
+  displayName            String
+  seatNo                 String?
+  examTypeCode           String
+  examLevelCode          String
+  outcome                String
+  publicOrganizationName String?
+  isActive               Boolean           @default(true)
+  projectedAt            DateTime          @default(now())
+  publication            ResultPublication @relation(fields: [resultPublicationId], references: [id])
+  academicYear           AcademicYear      @relation(fields: [academicYearId], references: [id])
+  organization           Organization?     @relation(fields: [organizationId], references: [id])
+  examCenter             ExamCenter?       @relation(fields: [examCenterId], references: [id])
+
+  @@index([resultPublicationId, isActive])
+  @@index([academicYearId, examTypeCode, examLevelCode, isActive])
+  @@index([seatNo])
+  @@index([displayName])
+  @@index([organizationId, academicYearId, isActive])
+  @@index([examCenterId, academicYearId, isActive])
+}
+
+model ResultNotificationJob {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  resultPublicationId String                  @db.Uuid
+  organizationId      String                   @db.Uuid
+  recipientEmail      String?                  @db.VarChar(320)
+  idempotencyKey      String                   @unique @db.VarChar(255)
+  status              ResultNotificationStatus @default(PENDING)
+  attemptCount        Int                      @default(0)
+  nextAttemptAt       DateTime                 @default(now())
+  lastError           String?                  @db.VarChar(1000)
+  sentAt              DateTime?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  resultPublication   ResultPublication        @relation(fields: [resultPublicationId], references: [id])
+  organization        Organization              @relation(fields: [organizationId], references: [id])
+
+  @@index([status, nextAttemptAt])
+  @@index([resultPublicationId, organizationId])
+}
+
+model User {
+  id                  String        @id @default(uuid()) @db.Uuid
+  username            String        @unique @db.VarChar(100)
+  passwordHash        String
+  role                UserRole
+  organizationId      String?       @db.Uuid
+  examCenterId        String?       @db.Uuid
+  failedLoginAttempts Int           @default(0)
+  lockedUntil         DateTime?
+  isActive            Boolean       @default(true)
+  lastLoginAt         DateTime?
+  deletedAt           DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  organization        Organization? @relation(fields: [organizationId], references: [id])
+  examCenter          ExamCenter?   @relation(fields: [examCenterId], references: [id])
+  authAuditLogs       AuthAuditLog[]
+  auditLogs           AuditLog[]
+  uploadedMedia       MediaFile[]
+  createdApplications ExamApplication[]      @relation("ApplicationCreatedBy")
+  approvedApplications ExamApplication[]     @relation("ApplicationApprovedBy")
+  applicationImportBatches ApplicationImportBatch[]
+  scoreImportBatches   ScoreImportBatch[]
+  scoreRevisions       ScoreRevision[]
+  issuedSeats          SeatAssignment[]          @relation("SeatIssuedBy")
+
+  @@index([role, isActive, deletedAt])
+  @@index([organizationId])
+  @@index([examCenterId])
+}
+
+model AuthAuditLog {
+  id              String         @id @default(uuid()) @db.Uuid
+  userId          String?        @db.Uuid
+  usernameAttempt String         @db.VarChar(100)
+  event           AuthAuditEvent
+  failureReason   String?
+  ipHash          String?        @db.VarChar(128)
+  userAgent       String?        @db.VarChar(512)
+  createdAt       DateTime       @default(now())
+  user            User?          @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([usernameAttempt, createdAt])
+  @@index([event, createdAt])
+}
+
+model MediaFile {
+  id           String          @id @default(uuid()) @db.Uuid
+  bucket       String          @db.VarChar(100)
+  objectKey    String          @db.VarChar(512)
+  originalName String          @db.VarChar(255)
+  category     MediaCategory
+  mimeType     String          @db.VarChar(100)
+  sizeBytes    Int
+  sha256       String          @db.VarChar(64)
+  scanStatus   MediaScanStatus @default(PENDING)
+  uploadedById String          @db.Uuid
+  deletedAt    DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  uploadedBy   User            @relation(fields: [uploadedById], references: [id])
+
+  @@unique([bucket, objectKey])
+  @@index([category, deletedAt, createdAt])
+  @@index([originalName])
+}
+
+model AuditLog {
+  id         String      @id @default(uuid()) @db.Uuid
+  actorId    String?     @db.Uuid
+  action     AuditAction
+  entityType String      @db.VarChar(100)
+  entityId   String      @db.VarChar(100)
+  beforeJson Json?
+  afterJson  Json?
+  occurredAt DateTime    @default(now())
+  actor      User?       @relation(fields: [actorId], references: [id])
+
+  @@index([entityType, entityId, occurredAt])
+  @@index([actorId, occurredAt])
+}
+
+model Applicant {
+  id                 String            @id @default(uuid()) @db.Uuid
+  nationalIdHash     String            @unique @db.Char(64)
+  nationalIdLast4    String            @db.Char(4)
+  firstName          String            @db.VarChar(150)
+  lastName           String            @db.VarChar(150)
+  deletedAt          DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  applications       ExamApplication[]
+
+  @@index([lastName, firstName])
+  @@index([deletedAt])
+}
+
+model ApplicationImportBatch {
+  id                 String            @id @default(uuid()) @db.Uuid
+  organizationId     String            @db.Uuid
+  createdById        String            @db.Uuid
+  sourceFileName     String            @db.VarChar(255)
+  sourceSha256       String            @db.Char(64)
+  bucket             String            @db.VarChar(100)
+  objectKey          String            @db.VarChar(512)
+  mimeType           String            @db.VarChar(100)
+  sizeBytes          Int
+  status             ImportBatchStatus @default(VALIDATING)
+  totalRows          Int               @default(0)
+  acceptedRows       Int               @default(0)
+  deletedAt          DateTime?
+  createdAt          DateTime          @default(now())
+  organization       Organization      @relation(fields: [organizationId], references: [id])
+  createdBy          User              @relation(fields: [createdById], references: [id])
+  applications       ExamApplication[]
+
+  @@unique([bucket, objectKey])
+  @@index([organizationId, createdAt])
+  @@index([status, createdAt])
+}
+
+model ExamApplication {
+  id                       String                  @id @default(uuid()) @db.Uuid
+  applicantId              String                  @db.Uuid
+  organizationId           String                  @db.Uuid
+  examCenterId             String                  @db.Uuid
+  examProgramId            String                  @db.Uuid
+  applicationImportBatchId String?                 @db.Uuid
+  status                   ApplicationStatus       @default(DRAFT)
+  source                   ApplicationSource       @default(MANUAL)
+  submittedAt              DateTime?
+  approvedAt               DateTime?
+  returnedReason           String?                 @db.VarChar(1000)
+  createdById              String                  @db.Uuid
+  approvedById             String?                 @db.Uuid
+  deletedAt                DateTime?
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+  applicant                Applicant               @relation(fields: [applicantId], references: [id])
+  organization             Organization            @relation(fields: [organizationId], references: [id])
+  examCenter               ExamCenter              @relation(fields: [examCenterId], references: [id])
+  examProgram              ExamProgram             @relation(fields: [examProgramId], references: [id])
+  applicationImportBatch   ApplicationImportBatch? @relation(fields: [applicationImportBatchId], references: [id])
+  createdBy                User                    @relation("ApplicationCreatedBy", fields: [createdById], references: [id])
+  approvedBy               User?                   @relation("ApplicationApprovedBy", fields: [approvedById], references: [id])
+  seatAssignment           SeatAssignment?
+  scoreRecord              ScoreRecord?
+  scoreRevisions           ScoreRevision[]
+
+  @@unique([applicantId, examProgramId])
+  @@index([organizationId, status, createdAt])
+  @@index([examCenterId, status, createdAt])
+  @@index([examProgramId, status])
+}
+
+model SeatSequence {
+  id            String      @id @default(uuid()) @db.Uuid
+  examCenterId  String      @db.Uuid
+  examProgramId String      @db.Uuid
+  nextSequence  Int         @default(1)
+  updatedAt     DateTime    @updatedAt
+  examCenter    ExamCenter  @relation(fields: [examCenterId], references: [id])
+  examProgram   ExamProgram @relation(fields: [examProgramId], references: [id])
+
+  @@unique([examCenterId, examProgramId])
+}
+
+model SeatAssignment {
+  id            String          @id @default(uuid()) @db.Uuid
+  applicationId String          @unique @db.Uuid
+  examCenterId  String          @db.Uuid
+  examProgramId String          @db.Uuid
+  sequenceNo    Int
+  seatNo        String          @unique @db.VarChar(80)
+  issuedById    String          @db.Uuid
+  issuedAt      DateTime        @default(now())
+  application   ExamApplication @relation(fields: [applicationId], references: [id])
+  examCenter    ExamCenter      @relation(fields: [examCenterId], references: [id])
+  examProgram   ExamProgram     @relation(fields: [examProgramId], references: [id])
+  issuedBy      User            @relation("SeatIssuedBy", fields: [issuedById], references: [id])
+
+  @@unique([examCenterId, examProgramId, sequenceNo])
+  @@index([examProgramId, seatNo])
+}
+
+model ScoreImportBatch {
+  id             String            @id @default(uuid()) @db.Uuid
+  examProgramId  String            @db.Uuid
+  sourceFileName String            @db.VarChar(255)
+  sourceSha256   String            @db.Char(64)
+  bucket         String            @db.VarChar(100)
+  objectKey      String            @db.VarChar(512)
+  mimeType       String            @db.VarChar(100)
+  sizeBytes      Int
+  status         ImportBatchStatus @default(VALIDATING)
+  totalRows      Int               @default(0)
+  validRows      Int               @default(0)
+  committedAt    DateTime?
+  createdById    String            @db.Uuid
+  deletedAt      DateTime?
+  createdAt      DateTime          @default(now())
+  examProgram    ExamProgram       @relation(fields: [examProgramId], references: [id])
+  createdBy      User              @relation(fields: [createdById], references: [id])
+  issues         ScoreImportIssue[]
+  rows           ScoreImportRow[]
+  scoreRevisions ScoreRevision[]
+
+  @@unique([bucket, objectKey])
+  @@index([examProgramId, status, createdAt])
+}
+
+model ScoreImportIssue {
+  id                 String           @id @default(uuid()) @db.Uuid
+  scoreImportBatchId String           @db.Uuid
+  rowNumber          Int
+  code               String           @db.VarChar(100)
+  message            String           @db.VarChar(1000)
+  rawRow             Json?
+  createdAt          DateTime         @default(now())
+  scoreImportBatch   ScoreImportBatch @relation(fields: [scoreImportBatchId], references: [id])
+
+  @@index([scoreImportBatchId, rowNumber])
+}
+
+model ScoreImportRow {
+  id                 String           @id @default(uuid()) @db.Uuid
+  scoreImportBatchId String           @db.Uuid
+  rowNumber          Int
+  seatNo             String           @db.VarChar(80)
+  applicationId      String           @db.Uuid
+  score              Decimal          @db.Decimal(5, 2)
+  outcome            String           @db.VarChar(100)
+  scoreImportBatch   ScoreImportBatch @relation(fields: [scoreImportBatchId], references: [id])
+
+  @@unique([scoreImportBatchId, rowNumber])
+  @@index([scoreImportBatchId, seatNo])
+}
+
+model ScoreRecord {
+  id                String          @id @default(uuid()) @db.Uuid
+  applicationId     String          @unique @db.Uuid
+  currentRevisionId String          @db.Uuid
+  score             Decimal         @db.Decimal(5, 2)
+  outcome           String          @db.VarChar(100)
+  updatedAt         DateTime        @updatedAt
+  application       ExamApplication @relation(fields: [applicationId], references: [id])
+
+  @@index([outcome])
+}
+
+model ScoreRevision {
+  id                 String           @id @default(uuid()) @db.Uuid
+  applicationId      String           @db.Uuid
+  scoreImportBatchId String           @db.Uuid
+  score              Decimal          @db.Decimal(5, 2)
+  outcome            String           @db.VarChar(100)
+  importedById       String           @db.Uuid
+  importedAt         DateTime         @default(now())
+  application        ExamApplication  @relation(fields: [applicationId], references: [id])
+  scoreImportBatch   ScoreImportBatch @relation(fields: [scoreImportBatchId], references: [id])
+  importedBy         User             @relation(fields: [importedById], references: [id])
+
+  @@index([applicationId, importedAt])
+  @@index([scoreImportBatchId])
+}
