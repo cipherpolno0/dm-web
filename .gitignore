@@ -16,7 +16,7 @@
 # tooling
 *.tsbuildinfo
 coverage/
-reports/
+/reports/
 playwright-report/
 test-results/
 .DS_Store
