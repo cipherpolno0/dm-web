@@ -1,0 +1,100 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Migrate and deploy production
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: production
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+
+    steps:
+      - name: Check out merged revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Block destructive migration SQL
+        env:
+          PREVIOUS_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          if [ -z "$PREVIOUS_SHA" ] || [ "$PREVIOUS_SHA" = "0000000000000000000000000000000000000000" ]; then
+            changed_files="$(git ls-files 'prisma/migrations/**/migration.sql')"
+          else
+            changed_files="$(git diff --name-only "$PREVIOUS_SHA" "$CURRENT_SHA" -- 'prisma/migrations/**/migration.sql')"
+          fi
+          if [ -z "$changed_files" ]; then
+            exit 0
+          fi
+
+          found_unsafe_sql=0
+          while IFS= read -r migration_file; do
+            if rg --line-number --ignore-case '^\s*(drop\s+table|truncate\s+table|delete\s+from)|alter\s+table.*drop\s+column' "$migration_file"; then
+              found_unsafe_sql=1
+            fi
+          done <<EOF
+          $changed_files
+          EOF
+
+          if [ "$found_unsafe_sql" -eq 1 ]; then
+            echo "Refusing to deploy a destructive migration. Use an expand/backfill/contract plan and an approved maintenance runbook."
+            exit 1
+          fi
+
+      - name: Apply reviewed Prisma migrations
+        run: pnpm exec prisma migrate deploy
+
+      - name: Verify migration status
+        run: pnpm exec prisma migrate status
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel production configuration
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build Vercel production output
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy prebuilt output to production
+        id: vercel_deploy
+        run: |
+          deployment_url="$(vercel deploy --prebuilt --prod --archive=tgz --token="$VERCEL_TOKEN")"
+          echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke-test deployed public landing page
+        run: curl --fail --show-error --silent --retry 3 --retry-delay 5 "${{ steps.vercel_deploy.outputs.url }}/" > /dev/null

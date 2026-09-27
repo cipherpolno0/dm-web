@@ -27,5 +27,13 @@ export default async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/content/:path*",
+    "/media/:path*",
+    "/master-data/:path*",
+    "/applications/:path*",
+    "/results-management/:path*",
+    "/dashboard/:path*",
+  ],
 };
