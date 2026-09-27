@@ -5,7 +5,7 @@ Next.js App Router foundation for the examination-management system described in
 
 ## Prerequisites
 
-- Node.js 24 LTS (or the active project-supported LTS release)
+- Node.js 22 LTS (or the active project-supported LTS release)
 - pnpm 11+
 - PostgreSQL only when starting Prisma migrations or database-backed features
 
