@@ -1,6 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-import { e2eData, e2eUsers, prepareApprovedScoreForE2e } from "./support/test-database";
+import {
+  e2eData,
+  e2eUsers,
+  prepareApprovedScoreForE2e,
+  resetAndSeedE2eDatabase,
+  testPrisma,
+} from "./support/test-database";
 
 async function login(page: import("@playwright/test").Page, username: string, password: string) {
   await page.goto("/login");
@@ -10,6 +16,10 @@ async function login(page: import("@playwright/test").Page, username: string, pa
 }
 
 test.describe.serial("critical examination lifecycle", () => {
+  test.beforeEach(async () => {
+    await resetAndSeedE2eDatabase();
+  });
+
   test("school applies, field officer assigns a seat, admin publishes, and guest finds the published result", async ({
     browser,
   }) => {
@@ -45,9 +55,21 @@ test.describe.serial("critical examination lifecycle", () => {
     await expect(adminPage).toHaveURL(/\/admin$/);
     await adminPage.goto("/results-management");
     await adminPage.getByRole("button", { name: `ประกาศ ${e2eData.examProgramCode}` }).click();
-    await expect(
-      adminPage.getByText("การประกาศจะสร้าง public projection ใหม่แบบ atomic"),
-    ).toBeVisible();
+    await expect
+      .poll(
+        async () => {
+          const prisma = testPrisma();
+          try {
+            return prisma.resultPublication.count({
+              where: { examProgram: { code: e2eData.examProgramCode }, isPublished: true },
+            });
+          } finally {
+            await prisma.$disconnect();
+          }
+        },
+        { timeout: 10_000 },
+      )
+      .toBe(1);
     await administrator.close();
 
     const guest = await browser.newContext();
